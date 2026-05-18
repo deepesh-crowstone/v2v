@@ -4,7 +4,7 @@ FROM node:20-alpine AS frontend
 WORKDIR /src
 COPY package.json package-lock.json ./
 RUN npm ci
-COPY index.html vite.config.js ./
+COPY index.html ./
 COPY src ./src
 RUN npm run build \
     && test -f dist/index.html \
@@ -19,9 +19,6 @@ ENV PYTHONUNBUFFERED=1 \
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-RUN mkdir -p .streamlit
-COPY .streamlit/config.toml .streamlit/config.toml
 
 COPY streamlit_app.py .
 COPY --from=frontend /src/dist ./dist

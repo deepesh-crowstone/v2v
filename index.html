@@ -15,28 +15,11 @@
           Gemini uses server-side speech detection—you talk, pause, and hear the reply.
           The model is <code>gemini-3.1-flash-live-preview</code> (native
           <code>AUDIO</code> output + transcription).
-          Paste a key below, or configure <code>GEMINI_API_KEY</code> on the server
-          (recommended for deployments like Railway — the manual fields hide automatically).
-          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Get a key</a>.
+          The server injects <code>GEMINI_API_KEY</code> at runtime.
         </p>
       </header>
 
       <section class="panel controls">
-        <div id="manualKeySection">
-          <label class="field">
-            <span>Gemini API key</span>
-            <input
-              id="apiKey"
-              type="password"
-              autocomplete="off"
-              placeholder="AIza..."
-            />
-          </label>
-          <label class="chk">
-            <input id="rememberKey" type="checkbox" />
-            Remember key in localStorage
-          </label>
-        </div>
         <label class="chk">
           <input id="wantAudio" type="checkbox" checked />
           Play Gemini’s replies through your speakers

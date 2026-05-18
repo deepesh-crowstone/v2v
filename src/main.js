@@ -10,41 +10,25 @@ import {
 } from '@google/genai';
 
 const MODEL = 'gemini-3.1-flash-live-preview';
-const STORAGE_KEY = 'gemini-live-demo-api-key';
 
 const $ = (id) => document.getElementById(id);
 
-const apiKeyEl = $('apiKey');
-const rememberEl = $('rememberKey');
 const wantAudioEl = $('wantAudio');
 const listenHintEl = $('listenHint');
-const manualKeySection = $('manualKeySection');
 const btnConnect = $('btnConnect');
 const btnDisconnect = $('btnDisconnect');
 const statusEl = $('status');
 const logEl = $('log');
 
-let ai;
 /** @type {import('@google/genai').Session | null} */
 let session = null;
 /** @type {null | (() => Promise<void>)} */
 let micDispose = null;
 const pcmOut = createPcmPlayback();
 
-function injectedOrViteApiKey() {
+function getApiKey() {
   const w = /** @type {{ __GEMINI_API_KEY__?: string }} */ (window);
-  const inj = typeof w.__GEMINI_API_KEY__ === 'string' ? w.__GEMINI_API_KEY__.trim() : '';
-  if (inj) return inj;
-  try {
-    const v = import.meta.env?.VITE_GEMINI_API_KEY;
-    return typeof v === 'string' ? v.trim() : '';
-  } catch {
-    return '';
-  }
-}
-
-function getApiKeyForConnect() {
-  return injectedOrViteApiKey() || apiKeyEl.value.trim();
+  return typeof w.__GEMINI_API_KEY__ === 'string' ? w.__GEMINI_API_KEY__.trim() : '';
 }
 
 function setListeningUi(active) {
@@ -201,11 +185,6 @@ function createPcmPlayback() {
     nextTime = startAt + buf.duration;
   }
 
-  /** @deprecated use stopAll */
-  function flush() {
-    stopAll();
-  }
-
   async function teardown() {
     stopAll();
     if (ctx && ctx.state !== 'closed') {
@@ -214,7 +193,7 @@ function createPcmPlayback() {
     ctx = null;
   }
 
-  return { resume, push, stopAll, flush, teardown };
+  return { resume, push, stopAll, teardown };
 }
 
 function decodePcmPartsFromTurn(modelTurn) {
@@ -365,11 +344,11 @@ function setStatus(ok) {
 
 async function connect() {
   logEl.replaceChildren(restoreLogHint());
-  const key = getApiKeyForConnect();
+  const key = getApiKey();
   if (!key) {
     appendLog(
       'system',
-      'Set GEMINI_API_KEY on the server or paste your key below.'
+      'GEMINI_API_KEY is not configured on the server.'
     );
     return;
   }
@@ -382,9 +361,6 @@ async function connect() {
     return;
   }
 
-  const fromEnv = Boolean(injectedOrViteApiKey());
-  if (!fromEnv && rememberEl.checked) window.localStorage.setItem(STORAGE_KEY, key);
-
   await disconnect();
 
   // `gemini-3.1-flash-live-preview` is a *native audio* Live model: the API
@@ -393,7 +369,7 @@ async function connect() {
   // See: https://ai.google.dev/gemini-api/docs/live-api/capabilities#response-modalities
   const modalities = [Modality.AUDIO];
 
-  ai = new GoogleGenAI({ apiKey: key });
+  const ai = new GoogleGenAI({ apiKey: key });
 
   try {
     session = await ai.live.connect({
@@ -470,24 +446,8 @@ function restoreLogHint() {
 }
 
 function init() {
-  const fromEnv = injectedOrViteApiKey();
-  if (fromEnv && manualKeySection) {
-    manualKeySection.style.display = 'none';
-    apiKeyEl.value = '';
-  } else {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      apiKeyEl.value = stored;
-      rememberEl.checked = true;
-    }
-  }
-
   btnConnect.addEventListener('click', () => connect());
   btnDisconnect.addEventListener('click', () => disconnect());
-
-  rememberEl.addEventListener('change', () => {
-    if (!rememberEl.checked) window.localStorage.removeItem(STORAGE_KEY);
-  });
 }
 
 init();

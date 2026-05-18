@@ -31,10 +31,6 @@ body {
   color: #3d4450;
 }
 
-.sub a {
-  color: #0b57d0;
-}
-
 .panel {
   background: #fff;
   border-radius: 12px;
@@ -53,14 +49,6 @@ body {
 .field span {
   font-size: 0.825rem;
   font-weight: 600;
-}
-
-input[type='password'] {
-  width: 100%;
-  border: 1px solid #cdd3df;
-  border-radius: 8px;
-  padding: 0.55rem 0.65rem;
-  font: inherit;
 }
 
 .chk {

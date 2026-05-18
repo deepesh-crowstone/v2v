@@ -1,4 +1,4 @@
-"""Mounts `dist/` in Streamlit. Set GEMINI_API_KEY (or GOOGLE_API_KEY) to inject client-side."""
+"""Mounts `dist/` in Streamlit and injects GEMINI_API_KEY."""
 
 from __future__ import annotations
 
@@ -62,16 +62,12 @@ def main() -> None:
         st.error("`dist/` is missing. Run `npm ci && npm run build`, then redeploy.")
         st.stop()
 
-    env_key = (
-        os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or ""
-    ).strip()
-    if env_key:
-        embed = _inject_api_key_into_html(embed, env_key)
-        st.caption(
-            "Using **GEMINI_API_KEY** / **GOOGLE_API_KEY** from the server — the key "
-            "is exposed to this page for `@google/genai`. Restrict who can load the app."
-        )
+    env_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not env_key:
+        st.error("Set `GEMINI_API_KEY` in Railway Variables, then redeploy.")
+        st.stop()
 
+    embed = _inject_api_key_into_html(embed, env_key)
     components.html(embed, height=1100, scrolling=True)
 
 
