@@ -1,7 +1,9 @@
-"""Mounts the compiled Gemini Live UI (`dist/`) inside Streamlit."""
+"""Mounts `dist/` in Streamlit. Set GEMINI_API_KEY (or GOOGLE_API_KEY) to inject client-side."""
 
 from __future__ import annotations
 
+import json
+import os
 import re
 from pathlib import Path
 
@@ -33,6 +35,15 @@ def _inline_built_assets(html: str, dist_dir: Path) -> str:
     return out
 
 
+def _inject_api_key_into_html(html: str, api_key: str) -> str:
+    tag = f"<script>window.__GEMINI_API_KEY__={json.dumps(api_key)};</script>"
+    m = re.search(r"<body[^>]*>", html, re.I)
+    if not m:
+        return tag + html
+    i = m.end()
+    return html[:i] + tag + html[i:]
+
+
 def _load_embed_document() -> str:
     index = DIST / "index.html"
     if not index.exists():
@@ -50,6 +61,16 @@ def main() -> None:
     if not embed:
         st.error("`dist/` is missing. Run `npm ci && npm run build`, then redeploy.")
         st.stop()
+
+    env_key = (
+        os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or ""
+    ).strip()
+    if env_key:
+        embed = _inject_api_key_into_html(embed, env_key)
+        st.caption(
+            "Using **GEMINI_API_KEY** / **GOOGLE_API_KEY** from the server — the key "
+            "is exposed to this page for `@google/genai`. Restrict who can load the app."
+        )
 
     components.html(embed, height=1100, scrolling=True)
 

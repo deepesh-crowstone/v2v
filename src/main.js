@@ -18,6 +18,7 @@ const apiKeyEl = $('apiKey');
 const rememberEl = $('rememberKey');
 const wantAudioEl = $('wantAudio');
 const listenHintEl = $('listenHint');
+const manualKeySection = $('manualKeySection');
 const btnConnect = $('btnConnect');
 const btnDisconnect = $('btnDisconnect');
 const statusEl = $('status');
@@ -29,6 +30,22 @@ let session = null;
 /** @type {null | (() => Promise<void>)} */
 let micDispose = null;
 const pcmOut = createPcmPlayback();
+
+function injectedOrViteApiKey() {
+  const w = /** @type {{ __GEMINI_API_KEY__?: string }} */ (window);
+  const inj = typeof w.__GEMINI_API_KEY__ === 'string' ? w.__GEMINI_API_KEY__.trim() : '';
+  if (inj) return inj;
+  try {
+    const v = import.meta.env?.VITE_GEMINI_API_KEY;
+    return typeof v === 'string' ? v.trim() : '';
+  } catch {
+    return '';
+  }
+}
+
+function getApiKeyForConnect() {
+  return injectedOrViteApiKey() || apiKeyEl.value.trim();
+}
 
 function setListeningUi(active) {
   if (!listenHintEl) return;
@@ -348,15 +365,25 @@ function setStatus(ok) {
 
 async function connect() {
   logEl.replaceChildren(restoreLogHint());
-  const key = apiKeyEl.value.trim();
-  if (!key.startsWith('AIza') || key.length < 20) {
+  const key = getApiKeyForConnect();
+  if (!key) {
     appendLog(
       'system',
-      'Paste a valid Gemini API key (usually starts with AIza...).'
+      'Set GEMINI_API_KEY on the server or paste your key below.'
     );
     return;
   }
-  if (rememberEl.checked) window.localStorage.setItem(STORAGE_KEY, key);
+  if (key.length < 20) {
+    appendLog('system', 'API key looks too short.');
+    return;
+  }
+  if (!key.startsWith('AIza')) {
+    appendLog('system', 'Expected a Gemini key starting with AIza…');
+    return;
+  }
+
+  const fromEnv = Boolean(injectedOrViteApiKey());
+  if (!fromEnv && rememberEl.checked) window.localStorage.setItem(STORAGE_KEY, key);
 
   await disconnect();
 
@@ -443,10 +470,16 @@ function restoreLogHint() {
 }
 
 function init() {
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    apiKeyEl.value = stored;
-    rememberEl.checked = true;
+  const fromEnv = injectedOrViteApiKey();
+  if (fromEnv && manualKeySection) {
+    manualKeySection.style.display = 'none';
+    apiKeyEl.value = '';
+  } else {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      apiKeyEl.value = stored;
+      rememberEl.checked = true;
+    }
   }
 
   btnConnect.addEventListener('click', () => connect());
