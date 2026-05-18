@@ -1,0 +1,9 @@
+[server]
+headless = true
+address = "0.0.0.0"
+# Listen port: set by Docker/CLI — use `PORT` on Railway (see Dockerfile `CMD`).
+enableXsrfProtection = true
+enableCORS = false
+
+[browser]
+gatherUsageStats = false

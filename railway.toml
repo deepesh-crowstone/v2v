@@ -1,0 +1,9 @@
+# Railway: build this repo with the root Dockerfile and route HTTP to $PORT.
+# https://docs.railway.app/deploy/dockerfiles
+
+[build]
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/_stcore/health"
+healthcheckTimeout = 120

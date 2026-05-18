@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gemini 3.1 Flash Live — preview</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hdr">
+        <h1>Gemini 3.1 Flash Live (preview)</h1>
+        <p class="sub">
+          <strong>Voice-first:</strong> after you connect and allow the microphone,
+          Gemini uses server-side speech detection—you talk, pause, and hear the reply.
+          The model is <code>gemini-3.1-flash-live-preview</code> (native
+          <code>AUDIO</code> output + transcription).
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">API key</a>
+          stays in this tab only unless “remember key” is checked.
+        </p>
+      </header>
+
+      <section class="panel controls">
+        <label class="field">
+          <span>Gemini API key</span>
+          <input
+            id="apiKey"
+            type="password"
+            autocomplete="off"
+            placeholder="AIza..."
+          />
+        </label>
+        <label class="chk">
+          <input id="rememberKey" type="checkbox" />
+          Remember key in localStorage for this demo
+        </label>
+        <label class="chk">
+          <input id="wantAudio" type="checkbox" checked />
+          Play Gemini’s replies through your speakers
+        </label>
+        <div class="row voice-hint muted">
+          Microphone streams automatically while connected — no send button needed.
+          Tap Disconnect to stop.
+        </div>
+        <div class="row actions">
+          <button id="btnConnect" type="button" class="primary">Connect</button>
+          <button id="btnDisconnect" type="button" disabled>Disconnect</button>
+          <span id="status" class="status disconnected">Disconnected</span>
+          <span id="listenHint" class="listen-hint"></span>
+        </div>
+      </section>
+
+      <section class="panel chat">
+        <details id="optionalText" class="optional-text-details">
+          <summary>Optional typed message</summary>
+          <p class="fineprint">
+            The Live session expects voice for real turns. Text here is mainly for debugging.
+          </p>
+          <label class="field flush">
+            <textarea id="textIn" rows="2" placeholder="Type a line (rare overrides only)"></textarea>
+          </label>
+          <button id="btnSend" type="button" class="primary" disabled>
+            Inject text via <code>sendRealtimeInput</code>
+          </button>
+        </details>
+        <label class="field log-label">
+          <span>Conversation log</span>
+          <pre id="log" class="log" aria-live="polite"></pre>
+        </label>
+      </section>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
