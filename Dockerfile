@@ -27,10 +27,11 @@ COPY .streamlit/config.toml .streamlit/config.toml
 COPY streamlit_app.py .
 COPY --from=frontend /src/dist ./dist
 
-# Default 8501 for local Docker Compose; Railway injects $PORT at runtime.
-EXPOSE 8501
+# Listen port: ALWAYS use `$PORT` (Railway injects it). Omit EXPOSE — a fixed EXPOSE :8501
+# can route public traffic to the wrong container port while Streamlit listens on `$PORT`,
+# causing 502 Bad Gateway.
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
     CMD python -c "import os,urllib.request as u; p=os.environ.get('PORT','8501'); u.urlopen(f'http://127.0.0.1:{p}/_stcore/health', timeout=5).read()"
 
 SHELL ["/bin/sh", "-c"]
