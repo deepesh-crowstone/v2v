@@ -35,7 +35,7 @@ function setListeningUi(active) {
   if (!listenHintEl) return;
   listenHintEl.textContent =
     active
-      ? 'Mic live — keep talking naturally; Gemini answers after brief pauses (voice activity detection).'
+      ? 'Listening — pause briefly and Gemini will respond.'
       : '';
   listenHintEl.classList.toggle('is-live', active);
 }

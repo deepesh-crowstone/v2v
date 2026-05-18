@@ -3,19 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gemini 3.1 Flash Live — preview</title>
+    <title>V2V · Gemini Live</title>
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
     <main class="shell">
       <header class="hdr">
-        <h1>Gemini 3.1 Flash Live (preview)</h1>
+        <p class="eyebrow">V2V Live</p>
+        <h1>Talk to Gemini</h1>
         <p class="sub">
-          <strong>Voice-first:</strong> after you connect and allow the microphone,
-          Gemini uses server-side speech detection—you talk, pause, and hear the reply.
-          The model is <code>gemini-3.1-flash-live-preview</code> (native
-          <code>AUDIO</code> output + transcription).
-          The server injects <code>GEMINI_API_KEY</code> at runtime.
+          A minimal real-time voice interface powered by
+          <code>gemini-3.1-flash-live-preview</code>.
         </p>
       </header>
 
@@ -25,8 +23,7 @@
           Play Gemini’s replies through your speakers
         </label>
         <div class="row voice-hint muted">
-          Microphone streams automatically while connected — no send button needed.
-          Tap Disconnect to stop.
+          Connect, allow microphone access, then speak naturally.
         </div>
         <div class="row actions">
           <button id="btnConnect" type="button" class="primary">Connect</button>
