@@ -1,9 +1,0 @@
-services:
-  tutor-live:
-    build: .
-    image: tutor-gemini-live:latest
-    ports:
-      - "127.0.0.1:8501:8501"
-    restart: unless-stopped
-    # Uncomment to pin a known-good image after first build:
-    # image: tutor-gemini-live:2026-05-13

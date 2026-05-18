@@ -1,5 +1,4 @@
-# Multi-stage: build the Vite bundle, then serve it via Streamlit wrapper.
-# Run: docker compose up --build -d
+# Node builds `dist/` → Python serves Streamlit (Railway sets `$PORT`).
 
 FROM node:20-alpine AS frontend
 WORKDIR /src

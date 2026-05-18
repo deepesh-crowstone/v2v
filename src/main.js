@@ -20,8 +20,6 @@ const wantAudioEl = $('wantAudio');
 const listenHintEl = $('listenHint');
 const btnConnect = $('btnConnect');
 const btnDisconnect = $('btnDisconnect');
-const btnSend = $('btnSend');
-const textIn = $('textIn');
 const statusEl = $('status');
 const logEl = $('log');
 
@@ -302,8 +300,6 @@ function appendLog(role, msg, muted = false, blankSeparator = false) {
   line.appendChild(document.createTextNode(`[${t}] `));
   if (role === 'session') line.append(msg);
   else if (role === 'youΔ' || role === 'modelΔ') line.append(msg);
-  else if (role === 'you')
-    line.appendChild(document.createTextNode(`you: ${msg}`));
   else if (role === 'model')
     line.appendChild(document.createTextNode(`model: ${msg}`));
   else if (role === 'system')
@@ -318,7 +314,6 @@ function appendLog(role, msg, muted = false, blankSeparator = false) {
 async function disconnect() {
   setListeningUi(false);
   btnDisconnect.disabled = true;
-  btnSend.disabled = true;
   if (micDispose) {
     await micDispose().catch(() => {});
     micDispose = null;
@@ -348,7 +343,6 @@ function setStatus(ok) {
   statusEl.classList.toggle('disconnected', !ok);
   btnConnect.disabled = ok;
   btnDisconnect.disabled = !ok;
-  btnSend.disabled = !ok;
   if (!ok) setListeningUi(false);
 }
 
@@ -448,15 +442,6 @@ function restoreLogHint() {
   return n;
 }
 
-function sendText() {
-  if (!session) return;
-  const t = textIn.value.trim();
-  if (!t) return;
-  session.sendRealtimeInput({ text: t });
-  appendLog('you', t);
-  textIn.value = '';
-}
-
 function init() {
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored) {
@@ -466,13 +451,6 @@ function init() {
 
   btnConnect.addEventListener('click', () => connect());
   btnDisconnect.addEventListener('click', () => disconnect());
-  btnSend.addEventListener('click', () => sendText());
-  textIn.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      sendText();
-    }
-  });
 
   rememberEl.addEventListener('change', () => {
     if (!rememberEl.checked) window.localStorage.removeItem(STORAGE_KEY);

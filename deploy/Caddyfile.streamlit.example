@@ -1,6 +1,0 @@
-# Automatic HTTPS reverse proxy to Streamlit (replace host + email).
-
-voice.example.com {
-    encode gzip
-    reverse_proxy 127.0.0.1:8501
-}

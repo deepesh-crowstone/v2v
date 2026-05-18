@@ -55,18 +55,12 @@ body {
   font-weight: 600;
 }
 
-input[type='password'],
-textarea {
+input[type='password'] {
   width: 100%;
   border: 1px solid #cdd3df;
   border-radius: 8px;
   padding: 0.55rem 0.65rem;
   font: inherit;
-}
-
-textarea {
-  resize: vertical;
-  min-height: 4rem;
 }
 
 .chk {
@@ -131,35 +125,6 @@ textarea {
     opacity: 0.85;
     box-shadow: 0 0 0 6px rgb(11 150 69 / 0);
   }
-}
-
-.optional-text-details {
-  margin-bottom: 0.95rem;
-  border: 1px dashed #cdd3df;
-  border-radius: 8px;
-  padding: 0.6rem 0.85rem;
-  background: #fafbff;
-}
-
-.optional-text-details summary {
-  cursor: pointer;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #3d4555;
-}
-
-.fineprint {
-  margin: 0.65rem 0 0.5rem;
-  font-size: 0.8rem;
-  color: #6b7588;
-}
-
-.field.flush {
-  margin-bottom: 0.65rem;
-}
-
-.optional-text-details textarea {
-  min-height: 2.75rem;
 }
 
 button {
