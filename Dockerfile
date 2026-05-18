@@ -1,4 +1,4 @@
-# Node builds `dist/` → Python serves Streamlit (Railway sets `$PORT`).
+# Build Vite, then serve `dist/` with a tiny Node server.
 
 FROM node:20-alpine AS frontend
 WORKDIR /src
@@ -10,25 +10,13 @@ RUN npm run build \
     && test -f dist/index.html \
     && test "$(find dist/assets -name '*.js' | wc -l)" -ge 1
 
-FROM python:3.12-slim AS runtime
+FROM node:20-alpine AS runtime
 WORKDIR /app
-ENV PYTHONUNBUFFERED=1 \
-    STREAMLIT_SERVER_HEADLESS=true \
-    STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
-    STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY streamlit_app.py .
+COPY server.js .
 COPY --from=frontend /src/dist ./dist
 
-# Listen port: ALWAYS use `$PORT` (Railway injects it). Omit EXPOSE — a fixed EXPOSE :8501
-# can route public traffic to the wrong container port while Streamlit listens on `$PORT`,
-# causing 502 Bad Gateway.
-
 HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
-    CMD python -c "import os,urllib.request as u; p=os.environ.get('PORT','8501'); u.urlopen(f'http://127.0.0.1:{p}/_stcore/health', timeout=5).read()"
+    CMD node -e "fetch('http://127.0.0.1:' + (process.env.PORT || 8080) + '/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
 
-SHELL ["/bin/sh", "-c"]
-CMD exec streamlit run streamlit_app.py --server.address=0.0.0.0 --server.port="${PORT:-8501}"
+CMD ["node", "server.js"]

@@ -2,8 +2,6 @@
 .git
 .gitignore
 .cursor
-__pycache__
-*.py[cod]
 
 # Rebuilt inside the Node stage — do not copy host dist
 dist
