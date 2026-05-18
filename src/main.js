@@ -1,15 +1,14 @@
 /**
- * Minimal Gemini Live browser demo targeting `gemini-3.1-flash-live-preview`.
+ * Minimal Gemini Live browser demo targeting `gemini-live-2.5-flash-native-audio`.
  */
 import {
   GoogleGenAI,
   Modality,
-  ThinkingLevel,
   VoiceActivityType,
   VadSignalType,
 } from '@google/genai';
 
-const MODEL = 'gemini-3.1-flash-live-preview';
+const MODEL = 'gemini-live-2.5-flash-native-audio';
 
 const $ = (id) => document.getElementById(id);
 
@@ -363,9 +362,8 @@ async function connect() {
 
   await disconnect();
 
-  // `gemini-3.1-flash-live-preview` is a *native audio* Live model: the API
-  // rejects TEXT response modality with WebSocket close 1011 ("Internal error").
-  // Use AUDIO only and read text from `outputAudioTranscription` (+ optional PCM decode).
+  // Native audio Live models require AUDIO response modality. TEXT output comes
+  // from `outputAudioTranscription` while spoken audio streams as PCM.
   // See: https://ai.google.dev/gemini-api/docs/live-api/capabilities#response-modalities
   const modalities = [Modality.AUDIO];
 
@@ -380,9 +378,6 @@ async function connect() {
           voiceConfig: {
             prebuiltVoiceConfig: { voiceName: 'Puck' },
           },
-        },
-        thinkingConfig: {
-          thinkingLevel: ThinkingLevel.MINIMAL,
         },
         outputAudioTranscription: {},
         inputAudioTranscription: {},
