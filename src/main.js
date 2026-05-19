@@ -1,14 +1,15 @@
 /**
- * Minimal Gemini Live browser demo targeting `gemini-live-2.5-flash-native-audio`.
+ * Minimal Gemini Live browser demo targeting `gemini-3.1-flash-live-preview`.
  */
 import {
   GoogleGenAI,
   Modality,
+  ThinkingLevel,
   VoiceActivityType,
   VadSignalType,
 } from '@google/genai';
 
-const MODEL = 'gemini-live-2.5-flash-native-audio';
+const MODEL = 'gemini-3.1-flash-live-preview';
 
 const $ = (id) => document.getElementById(id);
 
@@ -378,6 +379,9 @@ async function connect() {
           voiceConfig: {
             prebuiltVoiceConfig: { voiceName: 'Puck' },
           },
+        },
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.MINIMAL,
         },
         outputAudioTranscription: {},
         inputAudioTranscription: {},
