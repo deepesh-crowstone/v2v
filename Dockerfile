@@ -1,4 +1,5 @@
-# Build Vite, then serve `dist/` with a tiny Node server.
+# Build Vite, then serve `dist/` with a small Node server that proxies the
+# Vertex AI Live API to the browser over a WebSocket.
 
 FROM node:20-alpine AS frontend
 WORKDIR /src
@@ -12,7 +13,11 @@ RUN npm run build \
 
 FROM node:20-alpine AS runtime
 WORKDIR /app
+ENV NODE_ENV=production
 
+# The server needs @google/genai + ws at runtime, so install production deps.
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 COPY server.js .
 COPY --from=frontend /src/dist ./dist
 

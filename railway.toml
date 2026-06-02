@@ -1,5 +1,10 @@
 # Railway: build this repo with the root Dockerfile and route HTTP to $PORT.
 # https://docs.railway.app/deploy/dockerfiles
+#
+# Required Variables (set in the Railway dashboard):
+#   GOOGLE_CLOUD_PROJECT             your GCP project id
+#   GOOGLE_CLOUD_LOCATION            e.g. us-central1
+#   GOOGLE_APPLICATION_CREDENTIALS_JSON   full service-account key JSON
 
 [build]
 dockerfilePath = "Dockerfile"

@@ -1,15 +1,13 @@
 /**
- * Minimal Gemini Live browser demo targeting `gemini-3.1-flash-live-preview`.
+ * Minimal Gemini Live browser demo. The Live session runs on the Node server
+ * (Vertex AI — `gemini-live-2.5-flash-native-audio`); this client streams mic
+ * PCM up to `/live` over a WebSocket and plays the audio/transcripts it relays
+ * back. No API key or Google credentials ever reach the browser.
  */
-import {
-  GoogleGenAI,
-  Modality,
-  ThinkingLevel,
-  VoiceActivityType,
-  VadSignalType,
-} from '@google/genai';
 
-const MODEL = 'gemini-3.1-flash-live-preview';
+// Serialized enum values the Live API sends verbatim (see @google/genai).
+const VAD_SIGNAL_TYPE_SOS = 'VAD_SIGNAL_TYPE_SOS';
+const VOICE_ACTIVITY_TYPE_START = 'ACTIVITY_START';
 
 const $ = (id) => document.getElementById(id);
 
@@ -20,15 +18,15 @@ const btnDisconnect = $('btnDisconnect');
 const statusEl = $('status');
 const logEl = $('log');
 
-/** @type {import('@google/genai').Session | null} */
-let session = null;
+/** @type {WebSocket | null} */
+let liveSocket = null;
 /** @type {null | (() => Promise<void>)} */
 let micDispose = null;
 const pcmOut = createPcmPlayback();
 
-function getApiKey() {
-  const w = /** @type {{ __GEMINI_API_KEY__?: string }} */ (window);
-  return typeof w.__GEMINI_API_KEY__ === 'string' ? w.__GEMINI_API_KEY__.trim() : '';
+function liveUrl() {
+  const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+  return `${scheme}://${location.host}/live`;
 }
 
 function setListeningUi(active) {
@@ -219,8 +217,8 @@ function decodePcmPartsFromTurn(modelTurn) {
 /** Whether the backend says the user's speech begins (stop model playback ASAP). */
 function isUserSpeechStartSignal(message, sc) {
   if (!sc?.interrupted) {
-    if (message.voiceActivityDetectionSignal?.vadSignalType === VadSignalType.VAD_SIGNAL_TYPE_SOS) return true;
-    if (message.voiceActivity?.voiceActivityType === VoiceActivityType.ACTIVITY_START)
+    if (message.voiceActivityDetectionSignal?.vadSignalType === VAD_SIGNAL_TYPE_SOS) return true;
+    if (message.voiceActivity?.voiceActivityType === VOICE_ACTIVITY_TYPE_START)
       return true;
   }
   return false;
@@ -307,6 +305,31 @@ function appendLog(role, msg, muted = false, blankSeparator = false) {
   requestAnimationFrame(() => logEl.scrollTo({ top: logEl.scrollHeight }));
 }
 
+/** @param {WebSocket} socket */
+async function startMic(socket) {
+  try {
+    const chain = await startMicPump((pcm) => {
+      if (socket.readyState !== WebSocket.OPEN) return;
+      socket.send(
+        JSON.stringify({
+          type: 'audio',
+          mimeType: 'audio/pcm;rate=16000',
+          data: toBase64Binary(pcm),
+        })
+      );
+    });
+    await chain.ctx.resume().catch(() => {});
+    micDispose = async () => teardownMic(chain);
+    setListeningUi(true);
+  } catch (err) {
+    appendLog(
+      'system',
+      `Microphone required for this demo: ${err instanceof Error ? err.message : String(err)}`
+    );
+    await disconnect();
+  }
+}
+
 async function disconnect() {
   setListeningUi(false);
   btnDisconnect.disabled = true;
@@ -314,20 +337,21 @@ async function disconnect() {
     await micDispose().catch(() => {});
     micDispose = null;
   }
-  try {
-    if (session) {
-      session.sendRealtimeInput({ audioStreamEnd: true });
-    }
-  } catch {
-    /* noop */
-  }
-  if (session) {
+  if (liveSocket) {
+    const socket = liveSocket;
+    liveSocket = null;
     try {
-      session.close();
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'audioStreamEnd' }));
+      }
     } catch {
       /* noop */
     }
-    session = null;
+    try {
+      socket.close();
+    } catch {
+      /* noop */
+    }
   }
   await pcmOut.teardown();
   setStatus(false);
@@ -344,97 +368,69 @@ function setStatus(ok) {
 
 async function connect() {
   logEl.replaceChildren(restoreLogHint());
-  const key = getApiKey();
-  if (!key) {
+  await disconnect();
+
+  let socket;
+  try {
+    socket = new WebSocket(liveUrl());
+  } catch (err) {
     appendLog(
       'system',
-      'GEMINI_API_KEY is not configured on the server.'
+      `Could not open the live socket: ${err instanceof Error ? err.message : String(err)}`
     );
     return;
   }
-  if (key.length < 20) {
-    appendLog('system', 'API key looks too short.');
-    return;
-  }
-  if (!key.startsWith('AIza')) {
-    appendLog('system', 'Expected a Gemini key starting with AIza…');
-    return;
-  }
+  liveSocket = socket;
 
-  await disconnect();
+  socket.addEventListener('open', () => {
+    appendLog('session', 'WebSocket opened — starting Vertex Live session…', true);
+  });
 
-  // Native audio Live models require AUDIO response modality. TEXT output comes
-  // from `outputAudioTranscription` while spoken audio streams as PCM.
-  // See: https://ai.google.dev/gemini-api/docs/live-api/capabilities#response-modalities
-  const modalities = [Modality.AUDIO];
-
-  const ai = new GoogleGenAI({ apiKey: key });
-
-  try {
-    session = await ai.live.connect({
-      model: MODEL,
-      config: {
-        responseModalities: modalities,
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Puck' },
-          },
-        },
-        thinkingConfig: {
-          thinkingLevel: ThinkingLevel.MINIMAL,
-        },
-        outputAudioTranscription: {},
-        inputAudioTranscription: {},
-      },
-      callbacks: {
-        onopen: () => appendLog('session', 'WebSocket opened.', true),
-        onmessage: dispatchServerMessage,
-        onerror: (e) => {
-          const err = /** @type {ErrorEvent & { error?: unknown }} */ (e);
-          const detail =
-            err.error instanceof Error
-              ? err.error.message
-              : String(err.message || err.error || 'Unknown error');
-          appendLog('system', `socket error — ${detail}`);
-        },
-        onclose: async (evt) => {
-          appendLog('system', `closed ${evt.reason || '(no reason)'} (${evt.code})`);
-          session = null;
-          setListeningUi(false);
-          if (micDispose) await micDispose().catch(() => {});
-          micDispose = null;
-          await pcmOut.teardown();
-          setStatus(false);
-        },
-      },
-    });
-    setStatus(true);
-
+  socket.addEventListener('message', async (evt) => {
+    if (typeof evt.data !== 'string') return;
+    let payload;
     try {
-      const chain = await startMicPump((pcm) => {
-        if (!session) return;
-        session.sendRealtimeInput({
-          audio: {
-            mimeType: 'audio/pcm;rate=16000',
-            data: toBase64Binary(pcm),
-          },
-        });
-      });
-      await chain.ctx.resume().catch(() => {});
-      micDispose = async () => teardownMic(chain);
-      setListeningUi(true);
-    } catch (err) {
-      appendLog(
-        'system',
-        `Microphone required for this demo: ${err instanceof Error ? err.message : String(err)}`
-      );
-      await disconnect();
+      payload = JSON.parse(evt.data);
+    } catch {
+      return;
     }
-  } catch (err) {
-    await disconnect();
-    const msg = err instanceof Error ? err.message : String(err);
-    appendLog('system', `Connect failed: ${msg}`);
-  }
+
+    switch (payload.type) {
+      case 'ready':
+        setStatus(true);
+        appendLog('session', `Live session ready (${payload.model || 'model'}).`, true);
+        await startMic(socket);
+        break;
+      case 'message':
+        await dispatchServerMessage(payload.message);
+        break;
+      case 'error':
+        appendLog('system', `server error — ${payload.detail || 'unknown'}`);
+        break;
+      case 'closed':
+        appendLog(
+          'system',
+          `Vertex session closed ${payload.reason || '(no reason)'} (${payload.code ?? ''})`
+        );
+        break;
+      default:
+        break;
+    }
+  });
+
+  socket.addEventListener('error', () => {
+    appendLog('system', 'WebSocket error — is the server running and configured for Vertex AI?');
+  });
+
+  socket.addEventListener('close', async () => {
+    if (liveSocket === socket) liveSocket = null;
+    setListeningUi(false);
+    if (micDispose) await micDispose().catch(() => {});
+    micDispose = null;
+    await pcmOut.teardown();
+    setStatus(false);
+    appendLog('system', 'Disconnected.');
+  });
 }
 
 function restoreLogHint() {
